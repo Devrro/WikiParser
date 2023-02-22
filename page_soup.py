@@ -12,7 +12,13 @@ technical_title_patterns = [
     "(Категорія:)",
     "(Спеціальна:)",
     "(Перегляд цього шаблону)",
-    "(Редагувати розділ:)"
+    "(Редагувати розділ:)",
+    "(Вікіпедія:)",
+    "(Шаблон:)",
+    "(Вікіпедія:Посилання на джерела)",
+    "(Вікіпедія:Авторитетні джерела)",
+    "(ще не написана)",
+    "(q:Special)",
 ]
 
 technical_href_patterns = [
@@ -48,32 +54,58 @@ class PageSoup:
             "wikiquote",
         )
         self.filter_elements_by_ids = [
-            "toc", "contentSub"
+            "toc", "contentSub", "Примітки"
         ]
-        self.urls = self.get_child_urls()
+        self.parse_url = self.get_parse_url()
+        self.urls = self.get_link_nodes()
 
-    def get_child_urls(self) -> list[dict]:
-        # parse_url = None
+    def get_parse_url(self) -> str:
+
+        if not self.page_to_parse:
+            raise ValueError({
+                "No page name were provided"
+            })
+
         if "/wiki/" in self.page_to_parse:
-            parse_url = self.wiki_base_page_url + self.page_to_parse
-        else:
-            parse_url = self.wiki_base_page_url + "/wiki/" + self.page_to_parse
+            return self.wiki_base_page_url + self.page_to_parse
+        return self.wiki_base_page_url + "/wiki/" + self.page_to_parse
 
-        request_page = requests.get(
-            parse_url
-        )
+    def get_link_nodes(self) -> list[dict]:
+        try:
+            request_page = requests.get(self.parse_url)
+        except requests.RequestException:
+            print("Request failed")
+            return []
         page_parse = self.filter_bodies_content(request_page)
         list_of_tag_a_objects = page_parse.find_all(self.filter_links_from_soup)
 
-        links = [{
-            "link": a_tag_object.get("href"),
-            "title": a_tag_object.get("title"),
-            "text": a_tag_object.text,
-            "prev_link": parse_url,
-            "prev_title": self.page_title
-        } for a_tag_object in list_of_tag_a_objects]
+        links = [
+            self.convert_tag_to_node(
+                a_tag_object, self.parse_url
+            ) for a_tag_object
+            in list_of_tag_a_objects
+        ]
 
         return links
+
+    def convert_tag_to_node(self, tag, prev=None):
+
+        return {
+            "link": tag.get("href", None),
+            "title": tag.get("title", None),
+            "text": tag.get("text", None),
+            "prev_link": prev,
+            "prev_title": self.page_title
+        }
+
+    def page_to_node(self):
+        return {
+            "title": self.page_title,
+            "link": self.parse_url,
+            "text": None,
+            "prev_link": None,
+            "prev_title": None,
+        }
 
     def filter_bodies_content(
             self,
@@ -90,12 +122,15 @@ class PageSoup:
         page_parse = BeautifulSoup(page_to_filter.content, "html.parser")
         self.page = page_parse
         self.page_title = page_parse.find(id="firstHeading").span.text
-
         page_parse = page_parse.find(id=page_content_id)
+
         for filtered_element in filter_elements_by_ids:
             decompose_element = page_parse.find(id=filtered_element)
             if decompose_element:
-                decompose_element.decompose()
+                try:
+                    decompose_element.decompose()
+                except Exception:
+                    print("Something went terribly wrong")
 
         return page_parse
 
@@ -127,7 +162,7 @@ class PageSoup:
         if has_technical_text(title, technical_title_patterns):
             return False
 
-        # Because we are parsing Ukrainian wiki I restrict non-cyrillic pages to search
+        # Because we are parsing Ukrainian wiki I restrict pages with non-cyrillic title to search
         if not has_cyrillic(title):
             return False
 
