@@ -1,5 +1,4 @@
 from time import sleep
-from typing import List
 from page_soup import PageSoup
 from wikiped_link_instance import LinkNode
 
@@ -33,7 +32,7 @@ class WikiRacer:
         return trace
 
     @staticmethod
-    def create_end_nodes(page: PageSoup):
+    def create_end_nodes(page: PageSoup) -> LinkNode:
         return LinkNode(
             title=page.page_title,
             link=page.parse_url,
@@ -45,7 +44,7 @@ class WikiRacer:
             self,
             start: str,
             finish: str,
-    ) -> List[str]:
+    ) -> list[str]:
         # pass
         start_page = PageSoup(start)
         end_page = PageSoup(finish)
