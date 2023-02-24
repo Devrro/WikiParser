@@ -1,3 +1,4 @@
+import bs4.element
 import requests
 import re
 
@@ -38,10 +39,10 @@ def has_technical_text(text, patterns):
 
 
 class PageSoup:
-    def __init__(self, page_to_parse: str) -> None:
+    def __init__(self, page_url_name: str) -> None:
         self.page_title = None
         self.page = None
-        self.page_to_parse = page_to_parse
+        self.page_url_name = page_url_name
         self.wiki_base_page_url = "https://uk.wikipedia.org"
         self.page_content = "bodyContent"
         self.list_of_filtered_css_classes = (
@@ -57,55 +58,32 @@ class PageSoup:
             "toc", "contentSub", "Примітки"
         ]
         self.parse_url = self.get_parse_url()
-        self.urls = self.get_link_nodes()
+        self.link_list = self.get_url_list()
 
     def get_parse_url(self) -> str:
+        if "/wiki/" in self.page_url_name:
+            return self.wiki_base_page_url + self.page_url_name
 
-        if not self.page_to_parse:
-            raise ValueError({
-                "No page name were provided"
-            })
+        return self.wiki_base_page_url + "/wiki/" + self.page_url_name
 
-        if "/wiki/" in self.page_to_parse:
-            return self.wiki_base_page_url + self.page_to_parse
-        return self.wiki_base_page_url + "/wiki/" + self.page_to_parse
+    def get_url_list(self) -> list[bs4.element.Tag]:
 
-    def get_link_nodes(self) -> list[dict]:
         try:
             request_page = requests.get(self.parse_url)
         except requests.RequestException:
             print("Request failed")
             return []
+
         page_parse = self.filter_bodies_content(request_page)
         list_of_tag_a_objects = page_parse.find_all(self.filter_links_from_soup)
+        return list_of_tag_a_objects
 
-        links = [
-            self.convert_tag_to_node(
-                a_tag_object, self.parse_url
-            ) for a_tag_object
-            in list_of_tag_a_objects
-        ]
-
-        return links
-
-    def convert_tag_to_node(self, tag, prev=None):
-
-        return {
-            "link": tag.get("href", None),
-            "title": tag.get("title", None),
-            "text": tag.get("text", None),
-            "prev_link": prev,
-            "prev_title": self.page_title
-        }
-
-    def page_to_node(self):
-        return {
-            "title": self.page_title,
-            "link": self.parse_url,
-            "text": None,
-            "prev_link": None,
-            "prev_title": None,
-        }
+    # def get_current_node(self) -> LinkNode:
+    #     return LinkNode(
+    #         title=self.page_title,
+    #         link=self.get_parse_url(),
+    #         prev_link_node=None
+    #     )
 
     def filter_bodies_content(
             self,
@@ -129,7 +107,7 @@ class PageSoup:
             if decompose_element:
                 try:
                     decompose_element.decompose()
-                except Exception:
+                except TypeError:
                     print("Something went terribly wrong")
 
         return page_parse
@@ -168,8 +146,22 @@ class PageSoup:
 
         return filtered_class
 
+    @staticmethod
+    def convert_list_of_bs4_to_dicts(
+            tags: list[bs4.element.Tag]
+    ) -> list[dict]:
+        return [PageSoup.convert_bs4_to_dict(tag) for tag in tags]
+
+    @staticmethod
+    def convert_bs4_to_dict(tag: bs4.element.Tag):
+        return {
+            "title": tag.get("title", None),
+            "link": tag.get("href", None),
+            "text": tag.get("text", None),
+        }
+
     def __repr__(self):
         return f"Node: {self.__str__()}"
 
     def __str__(self):
-        return f"{self.page_title}, links: {len(self.urls)}"
+        return f"{self.page_title}, links: {len(self.link_list)}"
