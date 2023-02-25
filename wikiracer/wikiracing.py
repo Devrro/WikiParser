@@ -87,12 +87,17 @@ class WikiRacer:
             url_dicts = PageSoup.convert_list_of_bs4_to_dicts(new_links_soup)
             new_nodes = []
             for url_dict in url_dicts:
-                if url_dict.get('link') != current_link_node.link:
-                    new_nodes.append(LinkNode.create_node_from_dict(url_dict, prev_link_node=current_link_node))
+                link = url_dict.get('link')
+                if link == current_link_node.link or link in visited_links:
+                    continue
+                if any([link == node.link for node in queue]):
+                    continue
+                new_nodes.append(LinkNode.create_node_from_dict(url_dict, prev_link_node=current_link_node))
 
             if start_checked:
                 for node in new_nodes:
                     if node.title == end_link_title:
+                        print(visited_links)
                         return self.trace_backward(node)
                     queue.append(node)
 

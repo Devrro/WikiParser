@@ -7,4 +7,7 @@ select = B,C,E,F,W,T4,B9,ANN,Q0,N8,VNE
 exclude =
     **migrations
     venv
+    .venv
     tests
+    wikiracer_orm
+    wikiracer_test.py
