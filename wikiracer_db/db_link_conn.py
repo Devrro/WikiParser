@@ -1,6 +1,7 @@
 from typing import Union, Type
 
 from django.db.transaction import atomic
+from django.db.models import Max
 
 from wikiracer.wikiped_link_instance import LinkNode
 from wikiracer_db.models import LinkObject, LinkConnection, LinkRacerResult, LinkListWay
@@ -41,11 +42,15 @@ class DbLinkConnection:
 
     @staticmethod
     def save_path_to_db(
+            way_attempt_index:int,
             end_points: LinkRacerResult,
             list_index: int,
             link_object: LinkObject
     ) -> LinkListWay:
+
+
         return LinkListWay.objects.create(
+            way_attempt_index=(way_attempt_index + 1),
             end_points=end_points,
             link_index=list_index,
             link_object=link_object

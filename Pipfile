@@ -9,6 +9,9 @@ requests = "*"
 django = "*"
 django-postgresql = "*"
 psycopg2 = "*"
+django-extensions = "*"
+jupyter = "*"
+ipython = "*"
 
 [dev-packages]
 

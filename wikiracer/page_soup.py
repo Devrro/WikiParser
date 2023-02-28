@@ -114,17 +114,30 @@ class PageSoup:
         return filtered_class
 
     @staticmethod
-    def convert_list_of_bs4_to_dicts(
-            tags: list[bs4.element.Tag]
+    def convert_list_to_formated_dicts(
+            tags: list[dict],
+            title: str = "title",
+            link: str = "href",
+            text: str = "text",
     ) -> list[dict]:
-        return [PageSoup.convert_bs4_to_dict(tag) for tag in tags]
+        return [PageSoup.convert_unformated_element_to_dict(
+            tag,
+            title=title,
+            link=link,
+            text=text,
+        ) for tag in tags]
 
     @staticmethod
-    def convert_bs4_to_dict(tag: bs4.element.Tag):
+    def convert_unformated_element_to_dict(
+            tag: dict,
+            title: str = "title",
+            link: str = "href",
+            text: str = "text",
+    ):
         return {
-            "title": tag.get("title", None),
-            "link": tag.get("href", None),
-            "text": tag.get("text", None),
+            "title": tag.get(title, None),
+            "link": tag.get(link, None),
+            "text": tag.get(text, None),
         }
 
     def __repr__(self):
