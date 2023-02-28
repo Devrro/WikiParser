@@ -6,8 +6,8 @@ class LinkNode:
     def __init__(
             self,
             title: str,
-            link: str,
-            text: str,
+            link: str = None,
+            text: str = None,
             prev_link_node: LinkNode = None
     ) -> None:
         self.title = title

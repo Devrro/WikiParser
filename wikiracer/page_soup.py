@@ -3,30 +3,11 @@ import requests
 import re
 
 from bs4 import BeautifulSoup
+from wikiracer.constants.html_constants import PATTERN_HREF, PATTERN_TITLE, PATTERN_CSS, PATTERN_ID
 
 
 def has_cyrillic(text):
     return bool(re.search('[а-яА-Я]', str(text)))
-
-
-technical_title_patterns = [
-    "(Категорія:)",
-    "(Спеціальна:)",
-    "(Перегляд цього шаблону)",
-    "(Редагувати розділ:)",
-    "(Вікіпедія:)",
-    "(Шаблон:)",
-    "(Вікіпедія:Посилання на джерела)",
-    "(Вікіпедія:Авторитетні джерела)",
-    "(ще не написана)",
-    "(q:Special)",
-]
-
-technical_href_patterns = [
-    "cite_note",
-    "cite_ref",
-    "#Примітки",
-]
 
 
 def has_technical_text(text, patterns):
@@ -45,18 +26,8 @@ class PageSoup:
         self.page_url_name = page_url_name
         self.wiki_base_page_url = "https://uk.wikipedia.org"
         self.page_content = "bodyContent"
-        self.list_of_filtered_css_classes = (
-            "external",
-            "mw-jump-link",
-            "mw-disambig",
-            "image",
-            "internal",
-            "mw-editsection-visualeditor",
-            "wikiquote",
-        )
-        self.filter_elements_by_ids = [
-            "toc", "contentSub", "Примітки"
-        ]
+        self.list_of_filtered_css_classes = PATTERN_CSS
+        self.filter_elements_by_ids = PATTERN_ID
         self.parse_url = self.get_parse_url()
         self.link_list = self.get_url_list()
 
@@ -71,19 +42,12 @@ class PageSoup:
         try:
             request_page = requests.get(self.parse_url)
         except requests.RequestException:
-            print("Request failed")
+            print("***ERROR***")
             return []
 
         page_parse = self.filter_bodies_content(request_page)
         list_of_tag_a_objects = page_parse.find_all(self.filter_links_from_soup)
-        return list_of_tag_a_objects
-
-    # def get_current_node(self) -> LinkNode:
-    #     return LinkNode(
-    #         title=self.page_title,
-    #         link=self.get_parse_url(),
-    #         prev_link_node=None
-    #     )
+        return list_of_tag_a_objects[:200]
 
     def filter_bodies_content(
             self,
@@ -99,7 +63,10 @@ class PageSoup:
 
         page_parse = BeautifulSoup(page_to_filter.content, "html.parser")
         self.page = page_parse
-        self.page_title = page_parse.find(id="firstHeading").span.text
+        try:
+            self.page_title = page_parse.find(id="firstHeading").span.text
+        except AttributeError:
+            print('NoneType object has no attribute text')
         page_parse = page_parse.find(id=page_content_id)
 
         for filtered_element in filter_elements_by_ids:
@@ -134,10 +101,10 @@ class PageSoup:
 
         title = tag.get('title')
 
-        if has_technical_text(has_href, technical_href_patterns):
+        if has_technical_text(has_href, PATTERN_HREF):
             return False
 
-        if has_technical_text(title, technical_title_patterns):
+        if has_technical_text(title, PATTERN_TITLE):
             return False
 
         # Because we are parsing Ukrainian wiki I restrict pages with non-cyrillic title to search
@@ -147,17 +114,30 @@ class PageSoup:
         return filtered_class
 
     @staticmethod
-    def convert_list_of_bs4_to_dicts(
-            tags: list[bs4.element.Tag]
+    def convert_list_to_formated_dicts(
+            tags: list[dict],
+            title: str = "title",
+            link: str = "href",
+            text: str = "text",
     ) -> list[dict]:
-        return [PageSoup.convert_bs4_to_dict(tag) for tag in tags]
+        return [PageSoup.convert_unformated_element_to_dict(
+            tag,
+            title=title,
+            link=link,
+            text=text,
+        ) for tag in tags]
 
     @staticmethod
-    def convert_bs4_to_dict(tag: bs4.element.Tag):
+    def convert_unformated_element_to_dict(
+            tag: dict,
+            title: str = "title",
+            link: str = "href",
+            text: str = "text",
+    ):
         return {
-            "title": tag.get("title", None),
-            "link": tag.get("href", None),
-            "text": tag.get("text", None),
+            "title": tag.get(title, None),
+            "link": tag.get(link, None),
+            "text": tag.get(text, None),
         }
 
     def __repr__(self):
