@@ -3,7 +3,7 @@ import requests
 import re
 
 from bs4 import BeautifulSoup
-from constants.html_constants import PATTERN_HREF, PATTERN_TITLE, PATTERN_CSS, PATTERN_ID
+from wikiracer.constants.html_constants import PATTERN_HREF, PATTERN_TITLE, PATTERN_CSS, PATTERN_ID
 
 
 def has_cyrillic(text):

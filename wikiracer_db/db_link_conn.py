@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Type
 
 from django.db.transaction import atomic
 
@@ -15,6 +15,7 @@ class DbLinkConnection:
                 title=node.title,
                 link=node.link,
             )
+
             return link_object
         return LinkObject.objects.get(title=node.title)
 
@@ -22,19 +23,21 @@ class DbLinkConnection:
     def connect_points(
             from_node: LinkObject,
             to_node: LinkObject,
-            db_model: Union[LinkConnection, LinkRacerResult]
+            db_model: Union[
+                Type[LinkConnection],
+                Type[LinkRacerResult]]
     ) -> Union[LinkConnection, LinkRacerResult]:
         if not db_model.objects.filter(
-                from_link=from_node,
-                target_link=to_node
+                start_link=from_node,
+                end_link=to_node
         ).exists():
             return db_model.objects.create(
-                from_link=from_node,
-                target_link=to_node
+                start_link=from_node,
+                end_link=to_node
             )
         return db_model.objects.get(
-            from_link=from_node,
-            target_link=to_node)
+            start_link=from_node,
+            end_link=to_node)
 
     @staticmethod
     def save_path_to_db(
@@ -43,7 +46,7 @@ class DbLinkConnection:
             link_object: LinkObject
     ) -> LinkListWay:
         return LinkListWay.objects.create(
-            end_points,
-            list_index,
-            link_object
+            end_points=end_points,
+            link_index=list_index,
+            link_object=link_object
         )

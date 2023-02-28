@@ -10,4 +10,4 @@ exclude =
     .venv
     tests
     wikiracer_orm
-    wikiracer_test.py
+    wikiracer/wikiracing_test.py
